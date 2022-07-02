@@ -7,7 +7,8 @@ import math
 import pickle
 import time
 
-parser = argparse.ArgumentParser(description='Optional app description')
+parser = argparse.ArgumentParser(description='Find duplicate files in destination of files in source,'+
+          'delete destination file and replace it with a link originating from the corresponding source file.')
 
 parser.add_argument('source',
                     help='Path of file or folder that serves as source for linking.')

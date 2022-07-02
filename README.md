@@ -19,6 +19,7 @@ By default a dry-run (no-changes to destination) is started. Use `--softlink` or
 ```
 find_duplicates.py [-h] [--softlink] [--hardlink] [--follow-symlinks] [--no-cache] [-d] [-v] source destination
 
+Find duplicate files in destination of files in source,delete destination file and replace it with a link originating from the corresponding source file.
 
 positional arguments:
   source             Path of file or folder that serves as source for linking.
