@@ -93,17 +93,23 @@ def hash_file(file):
   progress_bar(counter, parts, text, bar_length=20)
 
   start_time = time.time()
-  with open(file, 'rb') as f:
-      while True:
-        data = f.read(BUF_SIZE)
-        if not data:
-          break
-        sha1.update(data)
-        if ((counter * 100 // parts) != ((counter+1) * 100 // parts)):
-          progress_bar(counter, parts, text, bar_length=20)
-        counter += 1
-  end_time = time.time()
-  print("SHA1 hash of '"+os.path.basename(file)+"' took "+("%.1f" % (end_time-start_time))+" s. with avg. speed of "+("%.2f" % (os.path.getsize(file)/(end_time-start_time)/float(1<<20)))+" MB/s")
+  try:
+    with open(file, 'rb') as f:
+        while True:
+          data = f.read(BUF_SIZE)
+          if not data:
+            break
+          sha1.update(data)
+          if ((counter * 100 // parts) != ((counter+1) * 100 // parts)):
+            progress_bar(counter, parts, text, bar_length=20)
+          counter += 1
+    end_time = time.time()
+    print("SHA1 hash of '"+os.path.basename(file)+"' took "+("%.1f" % (end_time-start_time))+" s. with avg. speed of "+("%.2f" % (os.path.getsize(file)/(end_time-start_time)/float(1<<20)))+" MB/s")
+  except OSError as error:
+    print("")
+    print(error)
+    print("")
+    return None
   return sha1.hexdigest()
 
 def file_size(file):
@@ -157,15 +163,18 @@ for df in destination_files:
       destination_hashes[hash] = os.path.abspath(df)
 
 matches = []
+comm_match_filesize = 0
 
 for sh in source_hashes:
   for dh in destination_hashes:
     if sh == dh:
-      print("Match found: " + ("%.2f"% (os.path.getsize(source_hashes[sh]) /float(10**9) ) ) + " GB")
+      file_size = os.path.getsize(source_hashes[sh])
+      comm_match_filesize += file_size
+      print("Match found: " + ("%.2f"% (file_size/float(10**9) ) ) + " GB")
       print("    '"+source_hashes[sh]+"'")
       print("--->'"+destination_hashes[dh]+"'")
       matches.append((source_hashes[sh], destination_hashes[dh]))
-print("In total "+str(len(matches))+" Matches found.")
+print("In total "+str(len(matches))+" Matches found with a total size of " + ("%.2f"% (comm_match_filesize/float(10**9) ) ) + " GB")
 if softlink or hardlink:
   if softlink:
     print("Creating softlinks...")
