@@ -120,13 +120,19 @@ def get_file_hash(file):
   bn = os.path.basename(file)
   key = (bn, fs)
   if use_cache and key in hashes:
-    logging.info("Found file hash for "+str(key)+": "+hashes[key])
+    if hashes[key] is not None:
+      logging.info("Found file hash for "+str(key)+": "+hashes[key])
+    else:
+      logging.info("Found None-hash for "+str(key))
     return hashes[key]
   hash = hash_file(file)
-  if use_cache and hash is not None:
+  if use_cache:
     hashes[key] = hash
     save_hashes(hash_file_path, hashes)
-    logging.info("Calculated file hash for "+str(key)+": "+hash)
+    if hash is not None:
+      logging.info("Calculated file hash for "+str(key)+": "+hash)
+    else:
+      logging.info("Could not calculate hash.")
   return hash
 
 def get_all_files(folder):
