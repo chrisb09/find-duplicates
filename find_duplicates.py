@@ -6,6 +6,7 @@ import logging
 import math
 import pickle
 import time
+from datetime import timedelta
 
 parser = argparse.ArgumentParser(description='Find duplicate files in destination of files in source,'+
           'delete destination file and replace it with a link originating from the corresponding source file.')
@@ -78,6 +79,31 @@ def progress_bar(current, total, text, bar_length=20):
 
     print(f'{text}: [{arrow}{padding}] {int(fraction*100)}% {current}/{total}', end=ending)
 
+def calculate_elapsed_time(time_left):
+    formatted_time = timedelta(seconds=time_left)
+    print(formatted_time)
+    # Splitting the components
+#    days, hours, minutes, _ = formatted_time.split(":")
+    days = formatted_time.days
+    hours, remainder = divmod(formatted_time.seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+
+    # Create a list to store the non-zero components
+    time_components = []
+
+    # Add non-zero components to the list
+    if days != 0:
+        time_components.append(f"{days} days")
+    if hours != 0:
+        time_components.append(f"{hours} hours")
+    if minutes != 0:
+        time_components.append(f"{minutes} minutes")
+
+    # Join the components into a human-readable string
+    elapsed_time_str = ", ".join(time_components)
+
+    return elapsed_time_str
+
 def hash_file(file):
   file_size = os.path.getsize(file)
   if file_size <= 0:
@@ -114,6 +140,12 @@ def hash_file(file):
 
 def file_size(file):
   return os.path.getsize(file)
+
+def has_file_hash(file):
+  fs = file_size(file)
+  bn = os.path.basename(file)
+  key = (bn, fs)
+  return key in hashes
 
 def get_file_hash(file):
   fs = file_size(file)
@@ -156,9 +188,22 @@ destination_files = get_all_files(args.destination)
 source_hashes = dict()      # hash: abspath
 destination_hashes = dict() # hash: abspath
 
+source_files_unhashed_size = sum(map(lambda x: file_size(x), filter(lambda x: not has_file_hash(x), source_files)))
+source_files_hashed_size = 0
+
+start_time = time.time()
+
 for sf in source_files:
   if not os.path.islink(sf) or follow_symlinks:
+    add = has_file_hash(sf)
     hash = get_file_hash(sf)
+    if not add:
+      source_files_hashed_size += file_size(sf)
+      time_used = (time.time() - start_time)
+      time_left = (time_used / (source_files_hashed_size / source_files_unhashed_size)) - time_used
+      print("Source-file hashed so far: " + ("%.2f"% (source_files_hashed_size/float(10**9) ) ) + "/" + ("%.2f"% (source_files_unhashed_size/float(10**9) ) ) + " GB (" + ("%.2f"% (source_files_hashed_size*100/source_files_unhashed_size) ) + "%)"+
+      " avg. Speed: "+("%.2f"% (source_files_hashed_size / time_used / float(10**6))) + " MB/s"
+      " ETA: "+calculate_elapsed_time(time_left))
     if hash is not None:
       source_hashes[hash] = os.path.abspath(sf)
 
