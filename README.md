@@ -4,6 +4,11 @@ This simple python script looks for duplicates of files from the source path in 
 
 By default it uses speculative caching that increases performance on previously seen files (identified by filename+filesize), in rare instances this may lead to errors so consider deactivating it if your use case includes multiple files with the same name (and potentially same size).
 
+## !Important
+
+This version now uses json instead of pickle files to store hashes, the functionality to migrate is built in and will automatically ask you if you want to migrate the old database.
+If this affects you, please back up your data beforehand since obviously i have not had a lot of test cases to iron out all quirks in this regard.
+
 ## Installation
 
 Download the script (or use git clone).
