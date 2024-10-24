@@ -36,12 +36,10 @@ def migrate_database():
 def main():
   parser = argparse.ArgumentParser(description='Find duplicate files in destination of files in source,'+
             'delete destination file and replace it with a link originating from the corresponding source file.')
-
-  parser.add_argument('source',
-                      help='Path of file or folder that serves as source for linking.')
-
-  parser.add_argument('destination',
-                      help='Path of file or folder that serves as target for linking.')
+  
+  parser.add_argument('source', nargs='+', help='One or more paths to the source file or folder (the original location(s) of the files to be linked).')
+    
+  parser.add_argument('destination', help='Path to the destination file or folder (where symbolic links will be created, pointing to the source).')
 
   parser.add_argument('--softlink', dest='softlink', action='store_true',
                       help='Create softlinks. Without specifying soft- or hardlinks the script does just a dry-run.')
@@ -344,6 +342,8 @@ def get_file_hash(file, hash_function, use_cache):
   return hash
 
 def get_all_files(folder):
+  if type(folder) is list:
+    return [file for f in folder for file in get_all_files(f)]
   l = []
   for path, subdirs, files in os.walk(folder):
     for name in files:
