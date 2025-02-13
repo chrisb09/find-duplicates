@@ -49,6 +49,9 @@ def main():
 
   parser.add_argument('--follow-symlinks', dest="follow_symlinks", action='store_true',
                       help='Set this to follow symlinks, can result in redundant work or problems. Default: false')
+  
+  parser.add_argument('--dont-ignore-hardlinks', dest="dont_ignore_hardlinks", action='store_true',
+                      help='Set this to not ignore hardlinks. Default: false')
 
   parser.add_argument('--no-cache', dest="no_cache", action="store_true",
                       help="Deactivate caching based on filename-filesize combination. Caching can cause problems, but improves speed immensely for repeated executions")
@@ -75,16 +78,28 @@ def main():
   parser.add_argument(
       '-d', '--debug',
       help="Print lots of debugging statements",
-      action="store_const", dest="loglevel", const=logging.DEBUG,
-      default=logging.WARNING,
+      action="store_true"
   )
   parser.add_argument(
       '-v', '--verbose',
       help="Be verbose",
-      action="store_const", dest="loglevel", const=logging.INFO,
+      action="store_true"
   )
   args = parser.parse_args()
-  logging.basicConfig(level=args.loglevel)
+  
+  if args.debug:
+      loglevel = logging.DEBUG
+  elif args.verbose:
+      loglevel = logging.INFO
+  else:
+      loglevel = logging.WARNING
+  
+  for handler in logging.root.handlers[:]:
+      logging.root.removeHandler(handler)
+  logging.basicConfig(level=loglevel)
+  logging.info("args.verbose: %s", str(args.verbose))
+  logging.info("Set log level to: %s", str(loglevel))
+  logging.info("Log Level: %s", logging.getLevelName(logging.getLogger().getEffectiveLevel()))
   follow_symlinks = args.follow_symlinks
   softlink = args.softlink
   hardlink = args.hardlink
@@ -107,8 +122,8 @@ def main():
   print("Use destination cache: "+str(use_destination_cache))
   print("-"*40)
 
-  source_files = get_all_files(args.source)
-  destination_files = get_all_files(args.destination)
+  source_files = get_all_files(args.source, ignore_softlinks=not args.follow_symlinks, ignore_hardlinks=not args.dont_ignore_hardlinks)
+  destination_files = get_all_files(args.destination, ignore_softlinks=not args.follow_symlinks, ignore_hardlinks=not args.dont_ignore_hardlinks)
 
   source_hashes = dict()      # hash: abspath
   destination_hashes = dict() # hash: abspath
@@ -341,14 +356,24 @@ def get_file_hash(file, hash_function, use_cache):
     logging.info("Could not calculate hash.")
   return hash
 
-def get_all_files(folder):
+def get_all_files(folder, ignore_softlinks=True, ignore_hardlinks=True):
   if type(folder) is list:
-    return [file for f in folder for file in get_all_files(f)]
+    return [file for f in folder for file in get_all_files(f, ignore_hardlinks)]
   l = []
+  ignored_softlinks = 0
+  ignored_hardlinks = 0
   for path, subdirs, files in os.walk(folder):
     for name in files:
-      l.append(os.path.join(path, name))
+      # ignore hardlinks
+      file_path = os.path.join(path, name)
+      if os.path.islink(file_path) and (ignore_softlinks or not os.path.exists(file_path)):
+        continue
+      if ignore_hardlinks and os.stat(file_path).st_nlink > 1:
+        ignored_hardlinks += 1
+        continue
+      l.append(file_path)
   logging.info("Found "+str(len(l))+" files in '"+folder+"'")
+  logging.info("Ignored "+str(ignored_hardlinks)+" hardlinks.")
   return l
 
 
