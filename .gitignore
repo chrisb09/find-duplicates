@@ -1,3 +1,9 @@
 .*
 !.gitignore
-hashes.p
+*.p
+*.json
+*.log
+*.txt
+*.whl
+*.0
+*.sh
