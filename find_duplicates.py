@@ -122,7 +122,7 @@ def main():
   print("Use destination cache: "+str(use_destination_cache))
   print("-"*40)
 
-  source_files = get_all_files(args.source, ignore_softlinks=not args.follow_symlinks, ignore_hardlinks=not args.dont_ignore_hardlinks)
+  source_files = get_all_files(args.source, ignore_softlinks=not args.follow_symlinks, ignore_hardlinks=False)
   destination_files = get_all_files(args.destination, ignore_softlinks=not args.follow_symlinks, ignore_hardlinks=not args.dont_ignore_hardlinks)
 
   source_hashes = dict()      # hash: abspath
@@ -358,7 +358,7 @@ def get_file_hash(file, hash_function, use_cache):
 
 def get_all_files(folder, ignore_softlinks=True, ignore_hardlinks=True):
   if type(folder) is list:
-    return [file for f in folder for file in get_all_files(f, ignore_hardlinks)]
+    return [file for f in folder for file in get_all_files(f, ignore_softlinks, ignore_hardlinks)]
   l = []
   ignored_softlinks = 0
   ignored_hardlinks = 0
